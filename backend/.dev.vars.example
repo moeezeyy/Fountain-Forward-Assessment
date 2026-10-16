@@ -1,0 +1,2 @@
+JWT_SECRET=replace-with-a-long-random-local-dev-secret
+ALLOWED_ORIGIN=http://localhost:5173
