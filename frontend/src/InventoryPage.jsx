@@ -34,6 +34,11 @@ export default function InventoryPage() {
     setVehicles((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
   }
 
+  const statusCounts = vehicles.reduce((acc, v) => {
+    acc[v.status] = (acc[v.status] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="page">
       <header className="topbar">
@@ -55,6 +60,21 @@ export default function InventoryPage() {
 
       {loading && <p>Loading...</p>}
       {error && <p className="error-text">{error}</p>}
+
+      {!loading && !error && vehicles.length > 0 && (
+        <div className="stats-bar">
+          <div className="stat-chip">
+            <strong>{vehicles.length}</strong>
+            <span>Total</span>
+          </div>
+          {Object.entries(statusCounts).map(([status, count]) => (
+            <div className="stat-chip" key={status}>
+              <strong>{count}</strong>
+              <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loading && !error && (
         <div className="table-wrap">

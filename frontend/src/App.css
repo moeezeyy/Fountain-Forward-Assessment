@@ -43,6 +43,25 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  animation: rise-in 0.35s ease-out;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .table-wrap {
+    animation: none !important;
+  }
 }
 
 .brand-mark {
@@ -150,6 +169,36 @@ button[type="button"]:hover:not(:disabled) {
   border-color: var(--ink-soft);
 }
 
+.password-field {
+  position: relative;
+  display: flex;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.toggle-visibility {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--ink-soft);
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.toggle-visibility:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
 .error-text {
   color: var(--danger);
   background: var(--danger-bg);
@@ -230,6 +279,36 @@ button[type="button"]:hover:not(:disabled) {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  animation: rise-in 0.35s ease-out;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-chip strong {
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+
+.stat-chip span {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-transform: capitalize;
 }
 
 table {
