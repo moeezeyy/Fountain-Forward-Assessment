@@ -2,7 +2,7 @@ import os
 import uuid
 
 from fastapi import FastAPI, Depends, HTTPException, Response
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 
 from .db import d1_first, d1_all, d1_run
@@ -11,19 +11,41 @@ from .security import hash_password, verify_password, create_jwt
 
 app = FastAPI(title="Dealership Inventory API")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=os.environ.get("ALLOWED_ORIGIN", "*").split(","),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+class DynamicCORSMiddleware(BaseHTTPMiddleware):
+    """CORS driven by app.state.allowed_origins, set at request time via
+    configure() -- the Workers runtime only exposes env vars through
+    self.env, not os.environ, so this can't be read at import time."""
+
+    async def dispatch(self, request, call_next):
+        origin = request.headers.get("origin")
+        allowed = getattr(app.state, "allowed_origins", None) or os.environ.get(
+            "ALLOWED_ORIGIN", "*"
+        ).split(",")
+
+        if request.method == "OPTIONS":
+            response = Response(status_code=200)
+        else:
+            response = await call_next(request)
+
+        if origin and (origin in allowed or "*" in allowed):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Vary"] = "Origin"
+        if request.method == "OPTIONS":
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
 
 
-def configure(db, jwt_secret: str) -> None:
-    """Wire runtime dependencies (D1 binding, JWT secret) into app state."""
+app.add_middleware(DynamicCORSMiddleware)
+
+
+def configure(db, jwt_secret: str, allowed_origin: str = "*") -> None:
+    """Wire runtime dependencies (D1 binding, JWT secret, CORS origin) into app state."""
     app.state.db = db
     app.state.jwt_secret = jwt_secret
+    app.state.allowed_origins = allowed_origin.split(",")
 
 
 # ---------- Schemas ----------

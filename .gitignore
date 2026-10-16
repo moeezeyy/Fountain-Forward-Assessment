@@ -12,3 +12,6 @@ __pycache__/
 *.sqlite
 *.db
 .DS_Store
+backend/.venv-workers/
+backend/python_modules/
+out.json

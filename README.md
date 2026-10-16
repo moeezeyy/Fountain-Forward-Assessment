@@ -4,9 +4,10 @@ Two fictional dealerships sharing one application, with role-scoped access
 (admin vs viewer), dealership-scoped data, and optimistic-concurrency
 protected vehicle edits. Built for Cloudflare's free tier.
 
-- **Deployed app:** _fill in after deployment_
+- **Deployed app:** https://dealership-inventory-frontend.moeezz321.workers.dev
+- **Deployed API:** https://dealership-inventory-api.moeezz321.workers.dev
 - **Loom walkthrough:** _fill in_
-- **GitHub repo:** _fill in_
+- **GitHub repo:** https://github.com/moeezeyy/Fountain-Forward-Assessment
 
 ## Reviewer accounts
 
@@ -191,7 +192,7 @@ Run everything:
 
 ```bash
 # backend
-cd backend && pip install -r requirements.txt && pip install pytest httpx && python -m pytest -v
+cd backend && pip install fastapi pydantic pytest httpx && python -m pytest -v
 
 # frontend
 cd frontend && npm ci && npm test && npm run build
@@ -201,16 +202,21 @@ cd frontend && npm ci && npm test && npm run build
 
 ### Backend
 
+Dependencies for the Worker itself (FastAPI, pydantic) are declared in
+`pyproject.toml` and vendored by `pywrangler`, not installed with pip --
+Cloudflare's Python Workers runtime requires this (see "Why pywrangler,
+not plain wrangler" below). `pip install fastapi pydantic` is only needed
+locally so `pytest` can import the same code outside the Worker runtime.
+
 ```bash
 cd backend
-pip install -r requirements.txt
-pip install pytest httpx   # test-only deps
+pip install fastapi pydantic pytest httpx   # for running pytest locally
 cp .dev.vars.example .dev.vars   # fill in JWT_SECRET for local wrangler dev
 npx wrangler d1 create dealership-db        # one-time; copy the printed database_id into wrangler.toml
 npx wrangler d1 migrations apply dealership-db --local
 python scripts/generate_seed.py              # regenerate migrations/0002_seed.sql if needed
 npx wrangler d1 migrations apply dealership-db --local
-npx wrangler dev
+uvx --from workers-py pywrangler dev
 ```
 
 ### Frontend
@@ -240,14 +246,41 @@ See [backend/.dev.vars.example](backend/.dev.vars.example) and
    `wrangler d1 migrations apply dealership-db --remote` to create the
    schema and load seed data.
 2. **Backend Worker:** `wrangler secret put JWT_SECRET` once (persists
-   across deploys, not re-set by CI), then `wrangler deploy` from
-   `backend/`.
+   across deploys, not re-set by CI), then `uvx --from workers-py
+   pywrangler deploy` from `backend/`.
 3. **Frontend Pages:** build with `VITE_API_BASE_URL` pointed at the
    deployed Worker URL, then `wrangler pages deploy dist
    --project-name=dealership-inventory-frontend` from `frontend/`.
 4. **Health check:** `GET /api/health` returns `{"status": "ok"}` and
    exposes no configuration or secrets -- used both as a manual check and
    in the CI deploy job.
+5. **First-time workers.dev subdomain:** Cloudflare requires registering a
+   `<name>.workers.dev` subdomain on the account before any Worker can go
+   live (Dashboard -> Workers & Pages -> Account details -> Subdomain).
+   This is a one-time, account-level, interactive step -- it can't be
+   scripted from CI.
+
+### Why `pywrangler`, not plain `wrangler`
+
+Plain `wrangler deploy` with a `requirements.txt` only runs that Worker
+*locally* (`wrangler dev`) -- it refuses to deploy a Python Worker that
+way. Cloudflare's supported path for installing real PyPI packages (like
+FastAPI) into a deployed Python Worker is `pywrangler`, driven by
+`pyproject.toml`: it resolves dependencies, vendors compatible wheels
+into the Worker bundle, and then proxies to `wrangler` for the actual
+upload. `pywrangler` itself is installed on demand via `uv`/`uvx`
+(`uvx --from workers-py pywrangler <command>`), so no extra tool needs to
+be pre-installed in CI beyond `uv`.
+
+A second, unrelated gap surfaced once FastAPI was actually bundled and
+running: Cloudflare's Pyodide build does not expose
+`hashlib.pbkdf2_hmac` (it's backed by OpenSSL's `_hashlib` bindings,
+which this sandboxed runtime omits). `backend/src/app/security.py`
+implements PBKDF2-HMAC-SHA256 directly on top of `hmac`/`hashlib.sha256`
+instead, with a reduced iteration count (2,000, down from a more typical
+390,000+) so the pure-Python loop fits inside the Workers free plan's
+hard 10ms CPU-time budget per request -- documented inline and in "Known
+limitations" below.
 
 ## CI/CD ([.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml))
 
@@ -291,3 +324,11 @@ If a deployment on `main` turns out to be broken:
   above.
 - Python Workers have higher cold-start latency than JS Workers; acceptable
   for this demo's scale, called out here rather than left silent.
+- Password hashing uses only 2,000 PBKDF2 iterations (see "Why
+  `pywrangler`, not plain wrangler" above) instead of the ~390,000+
+  normally recommended, because Cloudflare's Pyodide runtime lacks
+  OpenSSL-backed `pbkdf2_hmac` and the free plan hard-caps CPU time at
+  10ms/request, leaving no budget for a slower pure-Python KDF loop at a
+  stronger iteration count. Acceptable for this synthetic-data assessment;
+  would need a paid plan (higher CPU budget) or an edge-native KDF binding
+  for production use with real credentials.

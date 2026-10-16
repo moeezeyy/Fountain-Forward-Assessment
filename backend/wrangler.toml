@@ -1,13 +1,16 @@
 name = "dealership-inventory-api"
 main = "src/worker.py"
 compatibility_date = "2026-10-01"
-compatibility_flags = ["python_workers"]
+compatibility_flags = ["python_workers", "disable_python_external_sdk"]
+
+[vars]
+ALLOWED_ORIGIN = "https://dealership-inventory-frontend.moeezz321.workers.dev"
 
 # Replace database_id with the id printed by `wrangler d1 create dealership-db`.
 [[d1_databases]]
 binding = "DB"
 database_name = "dealership-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "e0bb8916-ec57-4606-9667-4893e6b2acad"
 migrations_dir = "migrations"
 
 # JWT_SECRET is NOT set here. For local dev, put it in backend/.dev.vars
