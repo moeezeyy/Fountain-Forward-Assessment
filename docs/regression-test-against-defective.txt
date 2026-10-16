@@ -1,0 +1,78 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.4, pytest-8.4.1, pluggy-1.6.0 -- C:\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\USER\Desktop\Full stack\backend
+plugins: anyio-4.9.0, langsmith-0.4.16, cov-7.0.0
+collecting ... collected 2 items
+
+tests/test_concurrency.py::test_concurrent_edits_from_same_starting_version FAILED [ 50%]
+tests/test_concurrency.py::test_stale_edit_after_someone_else_already_updated_is_rejected FAILED [100%]
+
+================================== FAILURES ===================================
+______________ test_concurrent_edits_from_same_starting_version _______________
+
+client = <starlette.testclient.TestClient object at 0x000001D93CF48980>
+
+    def test_concurrent_edits_from_same_starting_version(client):
+        _, admin1_headers = login(client, "admin1@northgate.test")
+        _, admin2_headers = login(client, "admin2@northgate.test")
+    
+        # Both admins "loaded" the vehicle at version 1 and now submit
+        # different edits based on that same starting version.
+        resp1 = client.patch(
+            "/api/vehicles/veh-north-1",
+            headers=admin1_headers,
+            json={"make": "Toyota", "model": "Camry", "year": 2022, "status": "sold", "version": 1},
+        )
+        resp2 = client.patch(
+            "/api/vehicles/veh-north-1",
+            headers=admin2_headers,
+            json={"make": "Toyota", "model": "Camry", "year": 2022, "status": "pending", "version": 1},
+        )
+    
+        statuses = {resp1.status_code, resp2.status_code}
+>       assert statuses == {200, 409}, f"expected exactly one 200 and one 409, got {resp1.status_code}, {resp2.status_code}"
+E       AssertionError: expected exactly one 200 and one 409, got 200, 200
+E       assert {200} == {200, 409}
+E         
+E         Extra items in the right set:
+E         409
+E         
+E         Full diff:
+E           {
+E               200,
+E         -     409,
+E           }
+
+tests\test_concurrency.py:31: AssertionError
+_______ test_stale_edit_after_someone_else_already_updated_is_rejected ________
+
+client = <starlette.testclient.TestClient object at 0x000001D93CF43110>
+
+    def test_stale_edit_after_someone_else_already_updated_is_rejected(client):
+        _, admin1_headers = login(client, "admin1@northgate.test")
+        _, admin2_headers = login(client, "admin2@northgate.test")
+    
+        first = client.patch(
+            "/api/vehicles/veh-north-2",
+            headers=admin1_headers,
+            json={"make": "Honda", "model": "Civic", "year": 2021, "status": "sold", "version": 1},
+        )
+        assert first.status_code == 200
+        assert first.json()["version"] == 2
+    
+        # admin2 still has the stale version=1 in their UI and retries.
+        stale = client.patch(
+            "/api/vehicles/veh-north-2",
+            headers=admin2_headers,
+            json={"make": "Honda", "model": "Civic", "year": 2021, "status": "pending", "version": 1},
+        )
+>       assert stale.status_code == 409
+E       assert 200 == 409
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\test_concurrency.py:68: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_concurrency.py::test_concurrent_edits_from_same_starting_version
+FAILED tests/test_concurrency.py::test_stale_edit_after_someone_else_already_updated_is_rejected
+============================== 2 failed in 0.93s ==============================

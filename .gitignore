@@ -1,0 +1,14 @@
+.claude/
+node_modules/
+dist/
+build/
+.wrangler/
+*.pyc
+__pycache__/
+.pytest_cache/
+.dev.vars
+.env
+.env.local
+*.sqlite
+*.db
+.DS_Store

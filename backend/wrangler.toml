@@ -1,0 +1,15 @@
+name = "dealership-inventory-api"
+main = "src/worker.py"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["python_workers"]
+
+# Replace database_id with the id printed by `wrangler d1 create dealership-db`.
+[[d1_databases]]
+binding = "DB"
+database_name = "dealership-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# JWT_SECRET is NOT set here. For local dev, put it in backend/.dev.vars
+# (gitignored). For production, set it with:
+#   wrangler secret put JWT_SECRET
