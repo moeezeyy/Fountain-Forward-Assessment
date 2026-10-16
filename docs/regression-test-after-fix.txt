@@ -1,0 +1,24 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.4, pytest-8.4.1, pluggy-1.6.0 -- C:\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\USER\Desktop\Full stack\backend
+plugins: anyio-4.9.0, langsmith-0.4.16, cov-7.0.0
+collecting ... collected 15 items
+
+tests/test_access_control.py::test_viewer_can_list_own_dealership_vehicles PASSED [  6%]
+tests/test_access_control.py::test_viewer_cannot_edit_vehicle PASSED     [ 13%]
+tests/test_access_control.py::test_admin_can_edit_own_dealership_vehicle PASSED [ 20%]
+tests/test_access_control.py::test_admin_cannot_read_other_dealership_vehicle PASSED [ 26%]
+tests/test_access_control.py::test_admin_cannot_update_other_dealership_vehicle PASSED [ 33%]
+tests/test_access_control.py::test_missing_authentication_on_all_protected_routes PASSED [ 40%]
+tests/test_auth.py::test_login_with_valid_credentials_succeeds PASSED    [ 46%]
+tests/test_auth.py::test_login_with_invalid_password_rejected PASSED     [ 53%]
+tests/test_auth.py::test_login_with_unknown_email_rejected PASSED        [ 60%]
+tests/test_auth.py::test_protected_route_without_cookie_rejected PASSED  [ 66%]
+tests/test_auth.py::test_protected_route_with_garbage_cookie_rejected PASSED [ 73%]
+tests/test_auth.py::test_logout_invalidates_prior_session PASSED         [ 80%]
+tests/test_auth.py::test_health_endpoint_exposes_no_secrets PASSED       [ 86%]
+tests/test_concurrency.py::test_concurrent_edits_from_same_starting_version PASSED [ 93%]
+tests/test_concurrency.py::test_stale_edit_after_someone_else_already_updated_is_rejected PASSED [100%]
+
+============================= 15 passed in 3.32s ==============================

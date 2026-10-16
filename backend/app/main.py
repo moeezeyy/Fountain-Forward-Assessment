@@ -145,11 +145,29 @@ async def update_vehicle(
 
     db = app.state.db
 
-    # NOTE: reads the row to check existence/ownership, then performs an
-    # unconditional write. This is the read-then-write anti-pattern: it does
-    # not re-check the version at write time, so a stale request can silently
-    # overwrite a newer update (lost update). See the "fix" commit for the
-    # atomic conditional-UPDATE replacement.
+    # Single atomic conditional UPDATE: the WHERE clause enforces dealership
+    # scoping AND the optimistic-concurrency version check in one statement,
+    # so there is no read-then-write gap a concurrent request can exploit.
+    meta = await d1_run(
+        db,
+        "UPDATE vehicles SET make = ?, model = ?, year = ?, status = ?, "
+        "version = version + 1, updated_at = datetime('now') "
+        "WHERE id = ? AND dealership_id = ? AND version = ?",
+        body.make, body.model, body.year, body.status,
+        vehicle_id, user.dealership_id, body.version,
+    )
+
+    if meta.get("changes", 0) == 1:
+        updated = await d1_first(
+            db,
+            "SELECT id, dealership_id, make, model, year, status, version, updated_at "
+            "FROM vehicles WHERE id = ?",
+            vehicle_id,
+        )
+        return updated
+
+    # The conditional write affected zero rows. Figure out why, purely to
+    # return an accurate error -- the write decision above was already final.
     existing = await d1_first(
         db,
         "SELECT dealership_id, version FROM vehicles WHERE id = ?",
@@ -160,17 +178,10 @@ async def update_vehicle(
     if existing["dealership_id"] != user.dealership_id:
         raise HTTPException(status_code=403, detail="vehicle belongs to another dealership")
 
-    await d1_run(
-        db,
-        "UPDATE vehicles SET make = ?, model = ?, year = ?, status = ?, "
-        "version = version + 1, updated_at = datetime('now') WHERE id = ?",
-        body.make, body.model, body.year, body.status, vehicle_id,
+    raise HTTPException(
+        status_code=409,
+        detail={
+            "message": "vehicle was modified by someone else; refresh and retry",
+            "current_version": existing["version"],
+        },
     )
-
-    updated = await d1_first(
-        db,
-        "SELECT id, dealership_id, make, model, year, status, version, updated_at "
-        "FROM vehicles WHERE id = ?",
-        vehicle_id,
-    )
-    return updated
