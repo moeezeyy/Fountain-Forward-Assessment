@@ -37,8 +37,14 @@ export default function InventoryPage() {
   return (
     <div className="page">
       <header className="topbar">
-        <div>
-          <strong>{user.email}</strong> &middot; {user.role} &middot; dealership: {user.dealership_id}
+        <div className="topbar-identity">
+          <div className="avatar">{user.email.slice(0, 2).toUpperCase()}</div>
+          <div className="topbar-meta">
+            <div>
+              <strong>{user.email}</strong>
+            </div>
+            <span className="role-pill">{user.role}</span> &middot; dealership: {user.dealership_id}
+          </div>
         </div>
         <button type="button" onClick={logout}>
           Log out
@@ -51,28 +57,30 @@ export default function InventoryPage() {
       {error && <p className="error-text">{error}</p>}
 
       {!loading && !error && (
-        <table>
-          <thead>
-            <tr>
-              <th>Make</th>
-              <th>Model</th>
-              <th>Year</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {vehicles.map((v) => (
-              <VehicleRow
-                key={v.id}
-                vehicle={v}
-                canEdit={user.role === "admin"}
-                onUpdated={handleUpdated}
-                onSessionExpired={handleSessionExpired}
-              />
-            ))}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {vehicles.map((v) => (
+                <VehicleRow
+                  key={v.id}
+                  vehicle={v}
+                  canEdit={user.role === "admin"}
+                  onUpdated={handleUpdated}
+                  onSessionExpired={handleSessionExpired}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

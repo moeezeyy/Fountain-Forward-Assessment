@@ -28,7 +28,9 @@ export default function LoginPage() {
   return (
     <div className="centered-page">
       <form className="card" onSubmit={handleSubmit}>
+        <div className="brand-mark">DI</div>
         <h1>Dealership Inventory</h1>
+        <p className="card-subtitle">Sign in to manage your dealership's vehicles.</p>
         <label>
           Email
           <input
