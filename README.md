@@ -153,7 +153,7 @@ To reproduce locally:
 
 ```bash
 cd backend
-git show eff234c:app/main.py > /tmp/defective_main.py   # inspect the defective version
+git show eff234c:backend/app/main.py > /tmp/defective_main.py   # inspect the defective version (pre src/app rename)
 python -m pytest tests/test_concurrency.py -v           # run against current (fixed) code
 git log --oneline                                        # eff234c (defective) -> c47cb6e (fix)
 ```
