@@ -6,6 +6,7 @@ protected vehicle edits. Built for Cloudflare's free tier.
 
 - **Deployed app:** https://dealership-inventory-frontend.moeezz321.workers.dev
 - **Deployed API:** https://dealership-inventory-api.moeezz321.workers.dev
+- **Successful CI/CD run:** https://github.com/moeezeyy/Fountain-Forward-Assessment/actions/runs/38897507496
 - **Loom walkthrough:** _fill in_
 - **GitHub repo:** https://github.com/moeezeyy/Fountain-Forward-Assessment
 
