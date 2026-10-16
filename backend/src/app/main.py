@@ -33,8 +33,12 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Vary"] = "Origin"
         if request.method == "OPTIONS":
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
+            # "*" is treated as a literal string (not a wildcard) by browsers
+            # for credentialed requests, so these must be explicit values
+            # rather than "*", or the preflight is rejected client-side.
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+            requested_headers = request.headers.get("access-control-request-headers")
+            response.headers["Access-Control-Allow-Headers"] = requested_headers or "Content-Type"
         return response
 
 
