@@ -15,3 +15,4 @@ __pycache__/
 backend/.venv-workers/
 backend/python_modules/
 out.json
+cookies_*.txt
