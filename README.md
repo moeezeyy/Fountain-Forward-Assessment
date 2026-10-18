@@ -32,7 +32,7 @@ scenario against `veh-north-1`.
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | React + Vite, deployed to **Cloudflare Pages** | Small SPA, no SSR needed, Pages free tier is generous and deploys straight from a `dist/` build |
+| Frontend | React + Vite, deployed as a **Cloudflare Worker serving static assets** | Small SPA, no SSR needed; Workers' unified static-assets model (`assets.directory` in `wrangler.jsonc`) serves the `dist/` build directly from a `*.workers.dev` URL on the free tier |
 | Backend | **Python (FastAPI)** on **Cloudflare Workers (Python, GA)** | Explicitly requested stack; FastAPI is a first-class supported framework for Python Workers |
 | Database | **Cloudflare D1** (SQLite) | Free-tier-native, binds directly into the Worker, supports the atomic conditional `UPDATE` the concurrency requirement needs |
 | Auth | Hand-rolled HS256 JWT in an httpOnly cookie | Avoids `pyjwt`/`bcrypt` as external dependencies that would need WASM wheels under Pyodide; stdlib `hmac`/`hashlib` only, zero dependency risk |
@@ -51,7 +51,7 @@ native-dependency risk during deployment.
 ## Architecture
 
 ```
-frontend/   React + Vite SPA -> Cloudflare Pages
+frontend/   React + Vite SPA -> Cloudflare Worker (static assets)
 backend/    FastAPI app running inside a Python Cloudflare Worker
   app/      FastAPI app: routes, auth, D1 access
   src/      Worker entrypoint (ASGI bridge)
@@ -249,9 +249,11 @@ See [backend/.dev.vars.example](backend/.dev.vars.example) and
 2. **Backend Worker:** `wrangler secret put JWT_SECRET` once (persists
    across deploys, not re-set by CI), then `uvx --from workers-py
    pywrangler deploy` from `backend/`.
-3. **Frontend Pages:** build with `VITE_API_BASE_URL` pointed at the
-   deployed Worker URL, then `wrangler pages deploy dist
-   --project-name=dealership-inventory-frontend` from `frontend/`.
+3. **Frontend Worker:** build with `VITE_API_BASE_URL` pointed at the
+   deployed backend Worker URL, then `wrangler deploy` from `frontend/`
+   (it serves the `dist/` build as static assets per `wrangler.jsonc` --
+   this is a Worker, not a Pages project, so it must be `wrangler deploy`,
+   not `wrangler pages deploy`).
 4. **Health check:** `GET /api/health` returns `{"status": "ok"}` and
    exposes no configuration or secrets -- used both as a manual check and
    in the CI deploy job.
@@ -303,9 +305,9 @@ If a deployment on `main` turns out to be broken:
    (Cloudflare keeps prior deployments). Alternatively, revert the bad
    commit on `main` and let the pipeline redeploy the last-known-good
    state.
-2. **Frontend:** Cloudflare Pages keeps every deployment; promote a
-   previous deployment from the Pages dashboard, or revert-and-redeploy
-   the same way as the backend.
+2. **Frontend:** same mechanism as the backend -- it's also a Cloudflare
+   Worker (serving static assets), so `wrangler rollback` or a
+   revert-and-redeploy of the last-known-good commit restores it.
 3. **Database:** D1 schema migrations in this project are additive
    (`CREATE TABLE IF NOT EXISTS`), so rolling back code doesn't require a
    matching down-migration for the current schema. If a future migration
